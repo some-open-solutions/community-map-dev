@@ -1,0 +1,275 @@
+<style>
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+}
+
+#chartdiv {
+  width: 100%;
+  height: 100%;
+}
+</style>
+<link rel="stylesheet" href="libraries/bootstrapCollector.css">
+
+<script src="libraries/jquery-3.3.1.min.js"></script>
+<script src="libraries/ammap.js"></script>
+<script src="libraries/worldLow.js"></script>
+<script src="libraries/ammap_theme_light.js"></script>
+<script src="libraries/bootstrap.4.0.min.js"></script>
+
+<h1 class="text-primary">University of Reading School of Psychology and Clinical Language Sciences</h1>
+
+<ul class="nav nav-tabs mb-3" id="pills-tab" role="tablist">
+	<li class="nav-item">
+		<a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#navs-home" role="tab" aria-controls="pills-home" aria-selected="true">Students</a>
+	</li>
+	<li class="nav-item">
+		<a class="nav-link" id="pills-staff-tab" data-toggle="pill" href="#navs-staff" role="tab" aria-controls="pills-profile" aria-selected="false">Staff</a>
+	</li>
+	<li class="nav-item">
+		<a class="nav-link" id="pills-collaborator-tab" data-toggle="pill" href="#navs-collaborators" role="tab" aria-controls="pills-profile" aria-selected="false">Collaborators</a>
+	</li>
+</ul>
+<div class="tab-content" id="pills-tabContent">
+	<div class="tab-pane fade show active" id="navs-home" role="tabpanel" aria-labelledby="pills-home-tab">
+		<div id="student_map_div" style="width: 100%; height:400px;"></div>
+		<div id="student_list_div"></div>
+	</div>
+	<div class="tab-pane fade" id="navs-staff" role="tabpanel" aria-labelledby="pills-profile-tab">
+    <div id="staff_map_div" style="width: 100%; height:400px;"></div>
+		<div id="staff_list_div"></div>
+	</div>
+	<div class="tab-pane fade" id="navs-collaborators" role="tabpanel" aria-labelledby="pills-profile-tab">
+    <div id="collaborator_map_div" style="width: 100%; height:400px;"></div>
+		<div id="collaborator_list_div"></div>
+	</div>
+</div>
+
+
+<script>
+//navs-pp_map
+var ParseGSX = (function() {
+
+  var _defaultCallback = function(data) {
+    console.log(data);
+  };
+
+  var _parseRawData = function(res) {
+    var finalData = [];
+    res.feed.entry.forEach(function(entry){
+      var parsedObject = {};
+      for (var key in entry) {
+        if (key.substring(0,4) === "gsx$") {
+          parsedObject[key.slice(4)] = entry[key]["$t"];
+        }
+      }
+      finalData.push(parsedObject);
+    });
+    var processGSXData = _defaultCallback;
+    processGSXData(finalData);
+  };
+
+  var parseGSX = function(spreadsheetID, callback) {
+    var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/od6/public/values?alt=json";
+    var ajax = $.ajax(url);
+    if (callback) { _defaultCallback = callback; }
+    $.when(ajax).then(_parseRawData);
+  };
+
+  return { parseGSX: parseGSX };
+
+})();
+
+ParseGSX.parseGSX("1geHwjNUAUSe7DAm_QM5YZFOLzViDRFqCe4QyCAp4iC4",function(data){
+	console.dir("country info coming");
+	console.dir(data);
+
+
+	areas_array  = [];
+	images_array = [];
+	
+	var table_content = "<table class='table'>" +
+												"<thead>" +
+													"<tr>" +
+														"<th scope='col'>Country</th>" +
+														"<th scope='col'>Students</th>" +
+													"</tr>" +
+												"</thead>" +
+												"<tbody>";
+	
+	
+	var row_order = Object.keys(data);
+
+	row_order.sort(function(a,b) {
+		return data[a].frequency - data[b].frequency;
+	});
+	
+	data_sorted = [];
+	for(var i = 0; i < data.length; i++){
+		data_sorted[i] = data[row_order[i]];
+	}
+	data_sorted = data_sorted.reverse();
+	console.dir(data_sorted);
+
+
+	var max_frequency = 0;
+	data_sorted.forEach(function(row){
+		if(row.frequency > max_frequency){
+			max_frequency = row.frequency;
+		}
+	});
+	
+	data_sorted.forEach(function(row){
+		
+		table_content +=  "<tr>"+
+												"<td>" + row.country + "</td>" +
+												"<td>" + row.frequency + "</td>" +
+											"</tr>" 
+		
+		var this_opacity = row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency;
+		
+		if(row.institute !== ""){
+			areas_array.push({
+				id:row.code,
+				color:"rgb(0, 0, 255, " + this_opacity + ")",
+				fillAlphas:row.frequency
+			});
+		}
+	});
+	
+	table_content += "</tbody>"  + "</table>";
+	
+	$("#student_list_div").html(table_content);
+	AmCharts.makeChart( "student_map_div", {
+		"type": "map",
+		"dataProvider": {
+			"map": "worldLow",
+			"areas": areas_array,
+		"images": images_array
+		},
+		"projection": "winkel3",
+		"areasSettings": {
+			"autoZoom": true,
+			"selectedColor": "#CC0000"
+		},
+		"smallMap": {}
+	});	
+});    
+$("#pills-staff-tab").on("click",function(){
+	ParseGSX.parseGSX("1G-LYbGgLI6LJdFI3pM-v6K9dMP5ev6bFt64hVYxZqlg",function(data){
+		areas_array  = [];
+		images_array = [];
+		
+		var table_content = "<table class='table'>" +
+													"<thead>" +
+														"<tr>" +
+															"<th scope='col'>Country</th>" +
+															"<th scope='col'>Staff</th>" +
+														"</tr>" +
+													"</thead>" +
+													"<tbody>";
+		
+		
+		data.forEach(function(row){
+			
+			table_content +=  "<tr>"+
+													"<td>" + row.country + "</td>" +
+													"<td>" + row.frequency + "</td>" +
+												"</tr>" 
+			
+			if(row.institute !== ""){
+				areas_array.push({
+					id:row.code,
+					color:"#6495ED"
+				});
+				images_array.push({
+					
+					"latitude": row.latitude,
+					"longitude": row.longitude,
+					"color": "#CCCC00",
+					"scale": 0.5,
+					"label": row.country,
+					"labelShiftY": 2
+					
+				});
+			}
+		});
+		
+		table_content += "</tbody>"  + "</table>";
+		$("#staff_list_div").html(table_content);
+		AmCharts.makeChart( "staff_map_div", {
+			"type": "map",
+			"dataProvider": {
+				"map": "worldLow",
+				"areas": areas_array,
+				"images": images_array
+			},
+			"projection": "winkel3",
+			"areasSettings": {
+				"autoZoom": true,
+				"selectedColor": "#CC0000"
+			},
+			"smallMap": {}
+		});		 
+	});
+});
+$("#pills-collaborator-tab").on("click",function(){
+	ParseGSX.parseGSX("11Snn3TC4-2BkQCsWD8JxB_wYuF6oksB4_cat3U_YKKw",function(data){
+		areas_array  = [];
+		images_array = [];
+		
+		var table_content = "<table class='table'>" +
+													"<thead>" +
+														"<tr>" +
+															"<th scope='col'>Country</th>" +
+															"<th scope='col'>Collaborators</th>" +
+														"</tr>" +
+													"</thead>" +
+													"<tbody>";
+		
+		
+		data.forEach(function(row){
+			
+			table_content +=  "<tr>"+
+													"<td>" + row.country + "</td>" +
+													"<td>" + row.frequency + "</td>" +
+												"</tr>" 
+			
+			if(row.institute !== ""){
+				areas_array.push({
+					id:row.code,
+					color:"#6495ED"
+				});
+				images_array.push({
+					
+					"latitude": row.latitude,
+					"longitude": row.longitude,
+					"color": "#CCCC00",
+					"scale": 0.5,
+					"label": row.country,
+					"labelShiftY": 2
+					
+				});
+			}
+		});
+		
+		table_content += "</tbody>"  + "</table>";
+		$("#collaborator_list_div").html(table_content);
+		AmCharts.makeChart( "collaborator_map_div", {
+			"type": "map",
+			"dataProvider": {
+				"map": "worldLow",
+				"areas": areas_array,
+				"images": images_array
+			},
+			"projection": "winkel3",
+			"areasSettings": {
+				"autoZoom": true,
+				"selectedColor": "#CC0000"
+			},
+			"smallMap": {}
+		});		 
+	});
+});
+</script>
