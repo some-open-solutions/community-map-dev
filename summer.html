@@ -1,0 +1,99 @@
+<script src="libraries/jquery-3.3.1.min.js"></script>
+<script src="libraries/ammap.js"></script>
+<script src="libraries/worldLow.js"></script>
+<script src="libraries/ammap_theme_light.js"></script>
+<script src="libraries/bootstrap.4.0.min.js"></script>
+<script src="libraries/papaparse.4.3.6.min.js"></script>
+
+<div class="results"></div>
+<div id="student_map_div" style="width: 100%; height:400px;"></div>
+<div id="student_list_div"></div>
+<script>
+$.ajax({
+  type: 'POST',
+  crossDomain: true,
+  dataType: 'jsonp',
+  url: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRzyiLuQ0Zg3aKmcPtSxBOYS6P_bUX6Yhfl5bCU8gVsLO0fina79a4o8rU4sicai5UOryBkawOOa2Ku/pub?gid=921404355&single=true&output=csv',
+  success: function(data){
+	  data = Papa.parse(data).data;
+		
+		areas_array  = [];
+		images_array = [];
+		
+		var table_content = "<table class='table'>" +
+													"<thead>" +
+														"<tr>" +
+															"<th scope='col'>Country</th>" +
+															"<th scope='col'>Students</th>" +
+														"</tr>" +
+													"</thead>" +
+													"<tbody>";
+		
+		
+		var row_order = Object.keys(data);
+
+		row_order.sort(function(a,b) {
+			return data[a].frequency - data[b].frequency;
+		});
+		
+		data_sorted = [];
+		for(var i = 0; i < data.length; i++){
+			data_sorted[i] = data[row_order[i]];
+		}
+		data_sorted = data_sorted.reverse();
+		console.dir(data_sorted);
+
+
+		var max_frequency = 0;
+		data_sorted.forEach(function(row){
+			if(row.frequency > max_frequency){
+				max_frequency = row.frequency;
+			}
+		});
+		
+		data_sorted.forEach(function(row){
+			
+			table_content +=  "<tr>"+
+													"<td>" + row.country + "</td>" +
+													"<td>" + row.frequency + "</td>" +
+												"</tr>" 
+			
+			var this_opacity = row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency;
+			
+			if(row.institute !== ""){
+				areas_array.push({
+					id:row.code,
+					color:"rgb(0, 0, 255, " + this_opacity + ")",
+					fillAlphas:row.frequency
+				});
+			}
+		});
+		
+		table_content += "</tbody>"  + "</table>";
+		
+		$("#student_list_div").html(table_content);
+		AmCharts.makeChart( "student_map_div", {
+			"type": "map",
+			"dataProvider": {
+				"map": "worldLow",
+				"areas": areas_array,
+			"images": images_array
+			},
+			"projection": "winkel3",
+			"areasSettings": {
+				"autoZoom": true,
+				"selectedColor": "#CC0000"
+			},
+			"smallMap": {}
+		});	
+			
+		
+	}
+})
+
+/*
+$.get("https://docs.google.com/spreadsheets/d/e/2PACX-1vRzyiLuQ0Zg3aKmcPtSxBOYS6P_bUX6Yhfl5bCU8gVsLO0fina79a4o8rU4sicai5UOryBkawOOa2Ku/pub?gid=921404355&single=true&output=csv",function(asdf){
+console.dir(asdf);
+});
+*/
+</script>
