@@ -33,7 +33,7 @@ var ParseGSX = (function() {
   };
 
   var parseGSX = function(spreadsheetID, callback) {
-    var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/od6/public/values?alt=json";
+    var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/1/public/values?alt=json";
     var ajax = $.ajax(url);
     if (callback) { _defaultCallback = callback; }
     $.when(ajax).then(_parseRawData);
@@ -43,80 +43,82 @@ var ParseGSX = (function() {
 
 })();
 
-ParseGSX.parseGSX("1DkFmINBolHfxC9KE5dBnQlqfgsyCdDgxOtJY4dQPr7E",function(data){
-	console.dir("data");
-	console.dir(data);
-	areas_array  = [];
-	images_array = [];
-	
-	var table_content = "<table class='table'>" +
-												"<thead>" +
-													"<tr>" +
-														"<th scope='col'>Country</th>" +
-														"<th scope='col'>Students</th>" +
-													"</tr>" +
-												"</thead>" +
-												"<tbody>";
-	
-	
-	var row_order = Object.keys(data);
-
-
-		row_order.sort(function(a,b) {
-			return data[a].frequency - data[b].frequency;
-		});
+function update_map(){
+	ParseGSX.parseGSX("1h8w9Pl0ZUqTuZAh_15v2uZDxCwYBjOB7-2lOEkS4iwE",function(data){
+		areas_array  = [];
+		images_array = [];
 		
-		data_sorted = [];
-		for(var i = 0; i < data.length; i++){
-			data_sorted[i] = data[row_order[i]];
-		}
-		data_sorted = data_sorted.reverse();
-		console.dir(data_sorted);
+		var table_content = "<table class='table'>" +
+													"<thead>" +
+														"<tr>" +
+															"<th scope='col'>Country</th>" +
+															"<th scope='col'>Students</th>" +
+														"</tr>" +
+													"</thead>" +
+													"<tbody>";
+		
+		
+		var row_order = Object.keys(data);
 
 
-		var max_frequency = 0;
-		data_sorted.forEach(function(row){
-			if(row.frequency > max_frequency){
-				max_frequency = row.frequency;
+			row_order.sort(function(a,b) {
+				return data[a].frequency - data[b].frequency;
+			});
+			
+			data_sorted = [];
+			for(var i = 0; i < data.length; i++){
+				data_sorted[i] = data[row_order[i]];
 			}
-		});
-		
-		data_sorted.forEach(function(row){
+			data_sorted = data_sorted.reverse();
 			
-			table_content +=  "<tr>"+
-													"<td>" + row.country + "</td>" +
-													"<td>" + row.frequency + "</td>" +
-												"</tr>" 
+			var max_frequency = 0;
+			data_sorted.forEach(function(row){
+				if(row.frequency > max_frequency){
+					max_frequency = row.frequency;
+				}
+			});
 			
-			var this_opacity = row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency;
+			data_sorted.forEach(function(row){
+				if(row.frequency !== "" && parseFloat(row.frequency) !== 0){
+					table_content +=  "<tr>"+
+															"<td>" + row.country + "</td>" +
+															"<td>" + row.frequency + "</td>" +
+														"</tr>" 
+					var this_opacity = row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency;
+					
+					if(row.institute !== ""){
+						areas_array.push({
+							id:row.code,
+							color:"rgb(0, 0, 255, " + this_opacity + ")",
+							fillAlphas:row.frequency
+						});
+					}
+				}
+			});
 			
-			if(row.institute !== ""){
-				areas_array.push({
-					id:row.code,
-					color:"rgb(0, 0, 255, " + this_opacity + ")",
-					fillAlphas:row.frequency
-				});
-			}
-		});
-		
-		table_content += "</tbody>"  + "</table>";
-		
-		$("#student_list_div").html(table_content);
-		AmCharts.makeChart( "student_map_div", {
-			"type": "map",
-			"dataProvider": {
-				"map": "worldLow",
-				"areas": areas_array,
-			"images": images_array
-			},
-			"projection": "winkel3",
-			"areasSettings": {
-				"autoZoom": true,
-				"selectedColor": "#CC0000"
-			},
-			"smallMap": {}
-		});	
+			table_content += "</tbody>"  + "</table>";
 			
-});
+			$("#student_list_div").html(table_content);
+			AmCharts.makeChart( "student_map_div", {
+				"type": "map",
+				"dataProvider": {
+					"map": "worldLow",
+					"areas": areas_array,
+				"images": images_array
+				},
+				"projection": "winkel3",
+				"areasSettings": {
+					"autoZoom": true,
+					"selectedColor": "#CC0000"
+				},
+				"smallMap": {}
+			});	
+				
+	});
+}
+update_map();
+setInterval(function(){
+	update_map();
+},5000);
 
 </script>
