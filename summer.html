@@ -33,7 +33,7 @@ var ParseGSX = (function() {
   };
 
   var parseGSX = function(spreadsheetID, callback) {
-    var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/1/public/values?alt=json";
+    var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/2/public/values?alt=json";
     var ajax = $.ajax(url);
     if (callback) { _defaultCallback = callback; }
     $.when(ajax).then(_parseRawData);
@@ -52,7 +52,7 @@ function update_map(){
 													"<thead>" +
 														"<tr>" +
 															"<th scope='col'>Country</th>" +
-															"<th scope='col'>Students</th>" +
+															"<th scope='col'>Number of people</th>" +
 														"</tr>" +
 													"</thead>" +
 													"<tbody>";
