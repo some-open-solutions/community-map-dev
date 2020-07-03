@@ -7,6 +7,11 @@
 <script src="libraries/bootbox.4.4.0.min.js"></script>
 <script src="libraries/bootstrap.4.0.min.js"></script>
 <script src="libraries/papaparse.4.3.6.min.js"></script>
+<style>
+body{
+	padding:20px;
+}
+</style>
 
 <h1 class="text-primary">PCLS - The nationalities of the staff</h1>
 <h4 class="text-danger">This works best on google chrome in Windows <button class="btn btn-primary" id="contributors_btn">Contributors</button></h4>
@@ -70,7 +75,6 @@ var ParseGSX = (function() {
   return { parseGSX: parseGSX };
 
 })();
-
 function update_map(){
 	ParseGSX.parseGSX("1B46P-OpL4nfMMzt37QEKwYmNjpJQCdt5dSX2abH34qY",function(data){
 		areas_array  = [];
