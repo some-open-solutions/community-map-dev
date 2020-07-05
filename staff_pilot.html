@@ -116,7 +116,7 @@ function update_map(){
 															"<td>" + row.country + "</td>" +
 															"<td>" + row.frequency + "</td>" +
 														"</tr>" 
-					var this_opacity = row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency;
+					var this_opacity = .6; // + (row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency)/6;
 					
 					if(row.institute !== ""){
 						areas_array.push({
