@@ -1,0 +1,183 @@
+<link rel="stylesheet" href="libraries/bootstrapCollector.css">
+
+<script src="libraries/jquery-3.3.1.min.js"></script>
+<script src="libraries/ammap.js"></script>
+<script src="libraries/worldLow.js"></script>
+<script src="libraries/ammap_theme_light.js"></script>
+<script src="libraries/bootbox.4.4.0.min.js"></script>
+<script src="libraries/bootstrap.4.0.min.js"></script>
+<script src="libraries/papaparse.4.3.6.min.js"></script>
+<style>
+body{
+	padding:20px;
+}
+</style>
+
+<h1 class="text-primary" id="title_h1">Your title here</h1>
+<h4 class="text-danger">This works best on google chrome in Windows <button class="btn btn-primary" id="contributors_btn">Contributors</button></h4>
+<div class="text-secondary">If you think your response hasn't come through, or see anything else wrong with this page, please contact the person who asked you to complete the form</div>
+
+<div class="results"></div>
+<div id="staff_map_div" style="width: 100%; height:400px;"></div>
+<div id="staff_list_div"></div>
+<script>
+
+
+/*
+* by qwerty at
+* https://stackoverflow.com/questions/2116558/fastest-method-to-replace-all-instances-of-a-character-in-a-string
+*/
+String.prototype.replaceAll = function(str1, str2, ignore) 
+{
+  return this.replace(new RegExp(str1.replace(/([\/\,\!\\\^\$\{\}\[\]\(\)\.\*\+\?\|\<\>\-\&])/g,"\\$&"),(ignore?"gi":"g")),(typeof(str2)=="string")?str2.replace(/\$/g,"$$$$"):str2);
+}
+
+//solution to retrieve get values from url by weltraumpirat at https://stackoverflow.com/questions/5448545/how-to-retrieve-get-parameters-from-javascript/5448635#5448635
+function get_gets() {
+  function transformToAssocArray( prmstr ) {
+    var params = {};
+    var prmarr = prmstr.split("&");
+    for ( var i = 0; i < prmarr.length; i++) {
+      var tmparr = prmarr[i].split("=");
+      params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+  }
+  var prmstr = window.location.search.substr(1);
+			prmstr = prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+	return (prmstr);
+}
+
+var page_gets = get_gets();
+
+if(typeof(page_gets["title"]) !== "undefined"){
+	$("#title_h1").html(page_gets["title"].replaceAll("%20"," "));
+}
+
+$("#contributors_btn").on("click",function(){
+	bootbox.alert("<table class='table'>" +
+									"<tr>" +
+										"<td>Anthony Haffey</td>" +
+										"<td>Coding and idea conception</td>" +
+									"</tr>" +
+								"</table>");
+});
+
+var ParseGSX = (function() {
+
+  var _defaultCallback = function(data) {
+    console.log(data);
+  };
+
+  var _parseRawData = function(res) {
+    var finalData = [];
+    res.feed.entry.forEach(function(entry){
+      var parsedObject = {};
+      for (var key in entry) {
+        if (key.substring(0,4) === "gsx$") {
+          parsedObject[key.slice(4)] = entry[key]["$t"];
+        }
+      }
+      finalData.push(parsedObject);
+    });
+    var processGSXData = _defaultCallback;
+    processGSXData(finalData);
+  };
+
+  var parseGSX = function(spreadsheetID, 
+													sheet_no,
+													callback) {
+    var url = "https://spreadsheets.google.com/feeds/list/" + 
+							spreadsheetID + 
+							"/" +
+							sheet_no +
+							"/public/values?alt=json";
+    var ajax = $.ajax(url);
+    if (callback) { _defaultCallback = callback; }
+    $.when(ajax).then(_parseRawData);
+  };
+
+  return { parseGSX: parseGSX };
+
+})();
+function update_map(){
+	ParseGSX.parseGSX(page_gets["spreadsheetID"],
+										page_gets["sheet_no"],
+										function(data){
+		areas_array  = [];
+		images_array = [];
+		
+		var table_content = "<table class='table'>" +
+													"<thead>" +
+														"<tr>" +
+															"<th scope='col'>Country</th>" +
+															"<th scope='col'>Number of people</th>" +
+														"</tr>" +
+													"</thead>" +
+													"<tbody>";
+		
+		
+		var row_order = Object.keys(data);
+
+
+			row_order.sort(function(a,b) {
+				return data[a].frequency - data[b].frequency;
+			});
+			
+			data_sorted = [];
+			for(var i = 0; i < data.length; i++){
+				data_sorted[i] = data[row_order[i]];
+			}
+			data_sorted = data_sorted.reverse();
+			
+			var max_frequency = 0;
+			data_sorted.forEach(function(row){
+				if(row.frequency > max_frequency){
+					max_frequency = row.frequency;
+				}
+			});
+			
+			data_sorted.forEach(function(row){
+				if(row.frequency !== "" && parseFloat(row.frequency) !== 0){
+					table_content +=  "<tr>"+
+															"<td>" + row.country + "</td>" +
+															"<td>" + row.frequency + "</td>" +
+														"</tr>" 
+					var this_opacity = .6; // + (row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency)/6;
+					
+					if(row.institute !== ""){
+						areas_array.push({
+							id:row.code,
+							color:"rgb(0, 0, 255, " + this_opacity + ")",
+							fillAlphas:row.frequency
+						});
+					}
+				}
+			});
+			
+			table_content += "</tbody>"  + "</table>";
+			
+			$("#staff_list_div").html(table_content);
+			AmCharts.makeChart( "staff_map_div", {
+				"type": "map",
+				"dataProvider": {
+					"map": "worldLow",
+					"areas": areas_array,
+				"images": images_array
+				},
+				"projection": "winkel3",
+				"areasSettings": {
+					"autoZoom": true,
+					"selectedColor": "#CC0000"
+				},
+				"smallMap": {}
+			});	
+				
+	});
+}
+update_map();
+setInterval(function(){
+	update_map();
+},5000);
+
+</script>
