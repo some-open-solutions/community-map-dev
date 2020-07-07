@@ -4,6 +4,7 @@
 <script src="libraries/ammap.js"></script>
 <script src="libraries/worldLow.js"></script>
 <script src="libraries/ammap_theme_light.js"></script>
+<script src="libraries/bootbox.4.4.0.min.js"></script>
 <script src="libraries/bootstrap.4.0.min.js"></script>
 <script src="libraries/papaparse.4.3.6.min.js"></script>
 <style>
@@ -11,13 +12,57 @@ body{
 	padding:20px;
 }
 </style>
-<h1 class="text-primary">PCLS - Where we are this summer</h1>
-<h4 class="text-danger">This works best on google chrome in Windows</h4>
-<div class="text-secondary">If you think your response on <a href="https://forms.gle/1Fj8Q87uZxLH44Uw6" target="_blank">https://forms.gle/1Fj8Q87uZxLH44Uw6</a> hasn't come through, or see anything else wrong with this page, please contact <a href="https://www.reading.ac.uk/search/search-staff-details.aspx?id=21031" target="_blank">Anthony Haffey</a></div>
+
+<h1 class="text-primary" id="title_h1">Your title here</h1>
+<h4 class="text-danger">This works best on google chrome in Windows <button class="btn btn-primary" id="contributors_btn">Contributors</button></h4>
+<div class="text-secondary">If you think your response hasn't come through, or see anything else wrong with this page, please contact the person who asked you to complete the form</div>
+
 <div class="results"></div>
-<div id="student_map_div" style="width: 100%; height:400px;"></div>
-<div id="student_list_div"></div>
+<div id="staff_map_div" style="width: 100%; height:400px;"></div>
+<div id="staff_list_div"></div>
 <script>
+
+
+/*
+* by qwerty at
+* https://stackoverflow.com/questions/2116558/fastest-method-to-replace-all-instances-of-a-character-in-a-string
+*/
+String.prototype.replaceAll = function(str1, str2, ignore) 
+{
+  return this.replace(new RegExp(str1.replace(/([\/\,\!\\\^\$\{\}\[\]\(\)\.\*\+\?\|\<\>\-\&])/g,"\\$&"),(ignore?"gi":"g")),(typeof(str2)=="string")?str2.replace(/\$/g,"$$$$"):str2);
+}
+
+//solution to retrieve get values from url by weltraumpirat at https://stackoverflow.com/questions/5448545/how-to-retrieve-get-parameters-from-javascript/5448635#5448635
+function get_gets() {
+  function transformToAssocArray( prmstr ) {
+    var params = {};
+    var prmarr = prmstr.split("&");
+    for ( var i = 0; i < prmarr.length; i++) {
+      var tmparr = prmarr[i].split("=");
+      params[tmparr[0]] = tmparr[1];
+    }
+    return params;
+  }
+  var prmstr = window.location.search.substr(1);
+			prmstr = prmstr != null && prmstr != "" ? transformToAssocArray(prmstr) : {};
+	return (prmstr);
+}
+
+var page_gets = get_gets();
+
+if(typeof(page_gets["title"]) !== "undefined"){
+	$("#title_h1").html(page_gets["title"].replaceAll("%20"," "));
+}
+
+$("#contributors_btn").on("click",function(){
+	bootbox.alert("<table class='table'>" +
+									"<tr>" +
+										"<td>Anthony Haffey</td>" +
+										"<td>Coding and idea conception</td>" +
+									"</tr>" +
+								"</table>");
+});
+
 var ParseGSX = (function() {
 
   var _defaultCallback = function(data) {
@@ -39,8 +84,14 @@ var ParseGSX = (function() {
     processGSXData(finalData);
   };
 
-  var parseGSX = function(spreadsheetID, callback) {
-    var url = "https://spreadsheets.google.com/feeds/list/" + spreadsheetID + "/2/public/values?alt=json";
+  var parseGSX = function(spreadsheetID, 
+													sheet_no,
+													callback) {
+    var url = "https://spreadsheets.google.com/feeds/list/" + 
+							spreadsheetID + 
+							"/" +
+							sheet_no +
+							"/public/values?alt=json";
     var ajax = $.ajax(url);
     if (callback) { _defaultCallback = callback; }
     $.when(ajax).then(_parseRawData);
@@ -49,9 +100,10 @@ var ParseGSX = (function() {
   return { parseGSX: parseGSX };
 
 })();
-
 function update_map(){
-	ParseGSX.parseGSX("1h8w9Pl0ZUqTuZAh_15v2uZDxCwYBjOB7-2lOEkS4iwE",function(data){
+	ParseGSX.parseGSX(page_gets["spreadsheetID"],
+										page_gets["sheet_no"],
+										function(data){
 		areas_array  = [];
 		images_array = [];
 		
@@ -91,7 +143,7 @@ function update_map(){
 															"<td>" + row.country + "</td>" +
 															"<td>" + row.frequency + "</td>" +
 														"</tr>" 
-					var this_opacity = .6; //row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency;
+					var this_opacity = .6; // + (row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency)/6;
 					
 					if(row.institute !== ""){
 						areas_array.push({
@@ -105,8 +157,8 @@ function update_map(){
 			
 			table_content += "</tbody>"  + "</table>";
 			
-			$("#student_list_div").html(table_content);
-			AmCharts.makeChart( "student_map_div", {
+			$("#staff_list_div").html(table_content);
+			AmCharts.makeChart( "staff_map_div", {
 				"type": "map",
 				"dataProvider": {
 					"map": "worldLow",
