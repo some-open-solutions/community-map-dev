@@ -1,9 +1,15 @@
 <link rel="stylesheet" href="libraries/bootstrapCollector.css">
 
 <script src="libraries/jquery-3.3.1.min.js"></script>
-<script src="libraries/ammap.js"></script>
-<script src="libraries/worldLow.js"></script>
-<script src="libraries/ammap_theme_light.js"></script>
+
+<script src="libraries/amchart4/core.js"></script>
+<script src="libraries/amchart4/maps.js"></script>
+<script src="libraries/amchart4/worldLow.js"></script>
+<script src="libraries/amchart4/countries2.js"></script>
+<script src="libraries/amchart4/animated.js"></script>
+
+<script src="sosed_amchart.js"></script>
+
 <script src="libraries/bootbox.4.4.0.min.js"></script>
 <script src="libraries/bootstrap.4.0.min.js"></script>
 <script src="libraries/papaparse.4.3.6.min.js"></script>
@@ -18,8 +24,8 @@ body{
 <div class="text-secondary">If you think your response hasn't come through, or see anything else wrong with this page, please contact the person who asked you to complete the form</div>
 
 <div class="results"></div>
-<div id="staff_map_div" style="width: 100%; height:400px;"></div>
-<div id="staff_list_div"></div>
+<div id="map_div" style="width: 100%; height:400px;"></div>
+<div id="list_div"></div>
 <script>
 
 
@@ -63,121 +69,8 @@ $("#contributors_btn").on("click",function(){
 								"</table>");
 });
 
-var ParseGSX = (function() {
-
-  var _defaultCallback = function(data) {
-    console.log(data);
-  };
-
-  var _parseRawData = function(res) {
-    var finalData = [];
-    res.feed.entry.forEach(function(entry){
-      var parsedObject = {};
-      for (var key in entry) {
-        if (key.substring(0,4) === "gsx$") {
-          parsedObject[key.slice(4)] = entry[key]["$t"];
-        }
-      }
-      finalData.push(parsedObject);
-    });
-    var processGSXData = _defaultCallback;
-    processGSXData(finalData);
-  };
-
-  var parseGSX = function(spreadsheetID, 
-													sheet_no,
-													callback) {
-    var url = "https://spreadsheets.google.com/feeds/list/" + 
-							spreadsheetID + 
-							"/" +
-							sheet_no +
-							"/public/values?alt=json";
-    var ajax = $.ajax(url);
-    if (callback) { _defaultCallback = callback; }
-    $.when(ajax).then(_parseRawData);
-  };
-
-  return { parseGSX: parseGSX };
-
-})();
-function update_map(){
-	ParseGSX.parseGSX(page_gets["spreadsheetID"],
-										page_gets["sheet_no"],
-										function(data){
-		areas_array  = [];
-		images_array = [];
-		
-		var table_content = "<table class='table'>" +
-													"<thead>" +
-														"<tr>" +
-															"<th scope='col'>Country</th>" +
-															"<th scope='col'>Number of people</th>" +
-														"</tr>" +
-													"</thead>" +
-													"<tbody>";
-		
-		
-		var row_order = Object.keys(data);
-
-
-			row_order.sort(function(a,b) {
-				return data[a].frequency - data[b].frequency;
-			});
-			
-			data_sorted = [];
-			for(var i = 0; i < data.length; i++){
-				data_sorted[i] = data[row_order[i]];
-			}
-			data_sorted = data_sorted.reverse();
-			
-			var max_frequency = 0;
-			data_sorted.forEach(function(row){
-				if(row.frequency > max_frequency){
-					max_frequency = row.frequency;
-				}
-			});
-			
-			data_sorted.forEach(function(row){
-				if(row.frequency !== "" && parseFloat(row.frequency) !== 0){
-					table_content +=  "<tr>"+
-															"<td>" + row.country + "</td>" +
-															"<td>" + row.frequency + "</td>" +
-														"</tr>" 
-					var this_opacity = .6; // + (row.frequency/max_frequency < .1 ? .1 : row.frequency/max_frequency)/6;
-					
-					if(row.institute !== ""){
-						areas_array.push({
-							id:row.code,
-							color:"rgb(0, 0, 255, " + this_opacity + ")",
-							fillAlphas:row.frequency
-						});
-					}
-				}
-			});
-			
-			table_content += "</tbody>"  + "</table>";
-			
-			$("#staff_list_div").html(table_content);
-			AmCharts.makeChart( "staff_map_div", {
-				"type": "map",
-				"dataProvider": {
-					"map": "worldLow",
-					"areas": areas_array,
-				"images": images_array
-				},
-				"projection": "winkel3",
-				"areasSettings": {
-					"autoZoom": true,
-					"selectedColor": "#CC0000"
-				},
-				"smallMap": {}
-			});	
-				
-	});
-}
-update_map();
-setInterval(function(){
-	update_map();
-},5000);
+sosed_amchart("map_div",
+              page_gets["spreadsheetID"],
+              "list_div");
 
 </script>
